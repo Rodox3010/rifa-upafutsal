@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { validarReserva } from "@/lib/validate";
 import { notificarAdminWhatsapp } from "@/lib/whatsapp";
+import { valorTotal, precoPorNumero } from "@/lib/preco";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,6 @@ export async function POST(req: NextRequest) {
 
   const validacao = validarReserva(body);
   if (!validacao.ok) {
-    // Se foi o honeypot que pegou, respondemos como se tivesse dado certo,
-    // sem revelar ao robô que ele foi identificado.
     if (validacao.erro === "honeypot") {
       return NextResponse.json({ ok: true, message: "Reservado com sucesso" });
     }
@@ -34,7 +33,6 @@ export async function POST(req: NextRequest) {
   const supabase = supabaseAdmin();
   const ip = obterIp(req);
 
-  // --- Limite de tentativas por IP ---
   const desde = new Date(Date.now() - JANELA_MINUTOS * 60 * 1000).toISOString();
   const { count } = await supabase
     .from("reservation_attempts")
@@ -51,19 +49,18 @@ export async function POST(req: NextRequest) {
 
   await supabase.from("reservation_attempts").insert({ ip });
 
-  // --- Reserva atômica via função no banco ---
-  const { number, name, phone, email } = validacao.dados;
+  const { numbers, name, phone, email } = validacao.dados;
 
-  const { data, error } = await supabase.rpc("reservar_numero", {
-    p_number: number,
+  const { data, error } = await supabase.rpc("reservar_numeros", {
+    p_numbers: numbers,
     p_name: name,
     p_phone: phone,
     p_email: email,
   });
 
   if (error) {
-    console.error("Erro no RPC reservar_numero:", error);
-    return NextResponse.json({ ok: false, erro: "Erro ao reservar número" }, { status: 500 });
+    console.error("Erro no RPC reservar_numeros:", error);
+    return NextResponse.json({ ok: false, erro: "Erro ao reservar número(s)" }, { status: 500 });
   }
 
   const resultado = data?.[0];
@@ -71,13 +68,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, erro: resultado?.message ?? "Não foi possível reservar" }, { status: 409 });
   }
 
-  // Notifica o admin — se falhar, não desfaz a reserva (o dado já está salvo)
+  const total = valorTotal(numbers.length);
+  const unitario = precoPorNumero(numbers.length);
+
   await notificarAdminWhatsapp(
     `🎟️ Nova reserva na Rifa Upa Futsal!\n` +
-      `Número: ${number}\n` +
+      `Número(s): ${numbers.join(", ")}\n` +
       `Nome: ${name}\n` +
       `Telefone: ${phone}\n` +
       `E-mail: ${email}\n` +
+      `Valor: R$ ${unitario.toFixed(2)} por número — total R$ ${total.toFixed(2)}\n` +
       `Prazo de pagamento: 2 dias. Confira e confirme no painel admin.`
   );
 
