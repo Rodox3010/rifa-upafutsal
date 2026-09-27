@@ -2,6 +2,14 @@
 
 App de rifa com 100 números, feito em Next.js + Supabase, pronto para publicar na Vercel.
 
+## ⚠️ Atualização: reserva de vários números
+
+Se você já tinha publicado uma versão anterior deste app (sem a promoção de
+vários números), rode o arquivo
+[`supabase/atualizacao_numeros_multiplos.sql`](./supabase/atualizacao_numeros_multiplos.sql)
+no SQL Editor do Supabase antes de publicar este código novo — ele só adiciona
+uma função nova, não mexe em nada que já existe.
+
 ## Como funciona
 
 - A pessoa escolhe um número disponível, preenche nome/telefone/e-mail e recebe na hora
@@ -101,10 +109,20 @@ Pronto — seu app estará em uma URL tipo `https://rifa-upa-futsal.vercel.app`.
 
 ## Ajustes comuns
 
-- **Preço fixo do bilhete**: preencha `NEXT_PUBLIC_PIX_VALOR` (ex: `10.00`). Deixe
-  em branco para a pessoa digitar o valor no app do banco dela.
+- **Preço e promoção**: hoje é R$ 6,00 por número, ou R$ 5,00 por número a partir
+  de 2 números na mesma reserva. Para mudar, ajuste `NEXT_PUBLIC_PRECO_UNITARIO`,
+  `NEXT_PUBLIC_PRECO_PROMOCIONAL` e `NEXT_PUBLIC_PROMOCAO_QTD_MINIMA` na Vercel e
+  faça um Redeploy.
+- **Foto do kit do prêmio**: hoje aparece um espaço reservado escrito "Foto do kit
+  em breve" no pop-up "Ver o kit do prêmio". Para trocar pela foto de verdade:
+  1. Coloque o arquivo da foto dentro da pasta `public/` do projeto com o nome
+     `kit.jpg` (crie a pasta `public` na raiz do projeto se ela não existir).
+  2. Em `app/page.tsx`, ache o comentário "Espaço reservado para a foto real do
+     kit" e troque a `<div>` logo abaixo dele por:
+     `<img src="/kit.jpg" alt="Kit do prêmio" className="w-full rounded-lg" />`
+  3. Suba a mudança para o GitHub — a Vercel publica sozinha.
 - **Prazo de pagamento**: hoje é 2 dias. Para mudar, edite `interval '2 days'` na
-  função `reservar_numero` dentro de `supabase/schema.sql` e rode o novo SQL no
+  função `reservar_numeros` dentro de `supabase/schema.sql` e rode o novo SQL no
   Supabase.
 - **Frequência da checagem de expiração**: hoje roda a cada 15 minutos (`*/15 * * * *`
   no `cron.schedule`). Pode deixar mais frequente se quiser.
