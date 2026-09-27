@@ -189,9 +189,7 @@ export default function PaginaRifa() {
             {/* Espaço reservado para a foto real do kit — troque esta div por
                 <img src="/kit.jpg" alt="Kit do prêmio" className="w-full rounded-lg" />
                 depois de colocar o arquivo kit.jpg dentro da pasta /public */}
-            <div className="flex aspect-square w-full items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 text-sm text-slate-400">
-              <img src="/kit.jpg" ... />
-            </div>
+            <img src="/kit.jpg" alt="Kit do prêmio" className="w-full rounded-lg" />
 
             <ul className="mt-4 space-y-1 text-left text-sm text-slate-700">
               <li>🎧 Fone de ouvido bluetooth</li>
