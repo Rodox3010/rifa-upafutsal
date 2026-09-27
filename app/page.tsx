@@ -190,7 +190,7 @@ export default function PaginaRifa() {
                 <img src="/kit.jpg" alt="Kit do prêmio" className="w-full rounded-lg" />
                 depois de colocar o arquivo kit.jpg dentro da pasta /public */}
             <div className="flex aspect-square w-full items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 text-sm text-slate-400">
-              Foto do kit em breve
+              <img src="/kit.jpg" ... />
             </div>
 
             <ul className="mt-4 space-y-1 text-left text-sm text-slate-700">
