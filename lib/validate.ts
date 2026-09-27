@@ -1,10 +1,12 @@
 export type DadosReserva = {
-  number: number;
+  numbers: number[];
   name: string;
   phone: string;
   email: string;
   honeypot?: string; // campo invisível — bots costumam preenchê-lo
 };
+
+const MAX_NUMEROS_POR_RESERVA = 10;
 
 export function validarReserva(body: unknown): { ok: true; dados: DadosReserva } | { ok: false; erro: string } {
   if (typeof body !== "object" || body === null) {
@@ -19,9 +21,17 @@ export function validarReserva(body: unknown): { ok: true; dados: DadosReserva }
     return { ok: false, erro: "honeypot" };
   }
 
-  const number = Number(b.number);
-  if (!Number.isInteger(number) || number < 1 || number > 100) {
-    return { ok: false, erro: "Número inválido" };
+  const numerosBrutos = Array.isArray(b.numbers) ? b.numbers : [];
+  const numbers = Array.from(new Set(numerosBrutos.map((n) => Number(n))));
+
+  if (numbers.length === 0 || numbers.length > MAX_NUMEROS_POR_RESERVA) {
+    return { ok: false, erro: "Escolha entre 1 e 10 números" };
+  }
+
+  for (const n of numbers) {
+    if (!Number.isInteger(n) || n < 1 || n > 100) {
+      return { ok: false, erro: "Número inválido" };
+    }
   }
 
   const name = typeof b.name === "string" ? b.name.trim().slice(0, 100) : "";
@@ -40,5 +50,5 @@ export function validarReserva(body: unknown): { ok: true; dados: DadosReserva }
     return { ok: false, erro: "Informe um e-mail válido" };
   }
 
-  return { ok: true, dados: { number, name, phone, email } };
+  return { ok: true, dados: { numbers, name, phone, email } };
 }

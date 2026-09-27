@@ -89,40 +89,35 @@ from public.raffle_numbers;
 grant select on public.raffle_numbers_public to anon, authenticated;
 
 -- ------------------------------------------------------------
--- Função: reservar um número (atômica, evita condição de corrida
--- de duas pessoas reservando o mesmo número ao mesmo tempo).
+-- Função: reservar um ou mais números de uma vez, atomicamente
+-- (evita condição de corrida entre pessoas reservando os mesmos
+-- números ao mesmo tempo, e permite a promoção "2 ou mais números
+-- saem mais barato" sem risco de reservar só parte do pedido).
 -- SECURITY DEFINER + revogada de anon/authenticated: só pode ser
 -- chamada com a service role key, a partir do backend.
 -- ------------------------------------------------------------
-create or replace function public.reservar_numero(
-  p_number int,
-  p_name   text,
-  p_phone  text,
-  p_email  text
+create or replace function public.reservar_numeros(
+  p_numbers int[],
+  p_name    text,
+  p_phone   text,
+  p_email   text
 )
 returns table(ok boolean, message text) as $$
 declare
-  v_row public.raffle_numbers%rowtype;
+  v_indisponiveis int[];
 begin
-  select * into v_row from public.raffle_numbers where number = p_number for update;
+  perform 1 from public.raffle_numbers where number = any(p_numbers) for update;
 
-  if v_row is null then
-    return query select false, 'Número inválido';
-    return;
-  end if;
+  select array_agg(number) into v_indisponiveis
+  from public.raffle_numbers
+  where number = any(p_numbers)
+    and (
+      status = 'paid'
+      or (status = 'reserved' and (held_by_admin or (expires_at is not null and expires_at > now())))
+    );
 
-  if v_row.status = 'paid' then
-    return query select false, 'Este número já foi pago por outra pessoa';
-    return;
-  end if;
-
-  if v_row.status = 'reserved' and v_row.held_by_admin then
-    return query select false, 'Este número está reservado pelo administrador';
-    return;
-  end if;
-
-  if v_row.status = 'reserved' and v_row.expires_at is not null and v_row.expires_at > now() then
-    return query select false, 'Este número já está reservado por outra pessoa';
+  if v_indisponiveis is not null then
+    return query select false, 'Os números ' || array_to_string(v_indisponiveis, ', ') || ' não estão mais disponíveis';
     return;
   end if;
 
@@ -135,13 +130,13 @@ begin
         reserved_at   = now(),
         expires_at    = now() + interval '2 days',
         updated_at    = now()
-    where number = p_number;
+    where number = any(p_numbers);
 
   return query select true, 'Reservado com sucesso';
 end;
 $$ language plpgsql security definer set search_path = public;
 
-revoke all on function public.reservar_numero(int, text, text, text) from public, anon, authenticated;
+revoke all on function public.reservar_numeros(int[], text, text, text) from public, anon, authenticated;
 
 -- ------------------------------------------------------------
 -- Função: liberar reservas vencidas (roda sozinha via pg_cron)
