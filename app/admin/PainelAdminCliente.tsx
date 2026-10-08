@@ -134,7 +134,7 @@ export default function PainelAdminCliente({ numerosIniciais }: { numerosIniciai
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex gap-2">
-                    {n.status === "reserved" && !n.held_by_admin && (
+                    {n.status === "reserved" && (
                       <button
                         disabled={carregandoAcao === n.number}
                         onClick={() => chamarAcao("/api/admin/confirmar", n.number)}
